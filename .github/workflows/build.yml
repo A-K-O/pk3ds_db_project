@@ -1,0 +1,21 @@
+name: Build 3DS demos
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: devkitpro/devkitarm:latest
+    strategy:
+      matrix:
+        demo: [01-moving-square]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        run: make -C demos/${{ matrix.demo }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.demo }}
+          path: demos/${{ matrix.demo }}/*.3dsx
