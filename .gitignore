@@ -5,3 +5,6 @@ build/
 *.elf
 *.cia
 *.map
+
+# Claude Code personal settings
+.claude/settings.local.json
