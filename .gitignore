@@ -5,3 +5,19 @@ build/
 *.elf
 *.cia
 *.map
+
+# Claude Code personal settings
+.claude/settings.local.json
+
+# Built textures (tex3ds output from gfx/)
+romfs/gfx/
+
+# Never commit saves or ROMs (see CLAUDE.md). Test fixtures are synthetic.
+*.sav
+*.dsv
+*.srm
+*.gb
+*.gbc
+*.gba
+*.nds
+*.3ds
