@@ -21,3 +21,11 @@ romfs/gfx/
 *.gba
 *.nds
 *.3ds
+# 3DS game saves (Checkpoint, Azahar, PKSM) are a file named "main" with no extension
+main
+# Pokémon files exported from PKHeX/PKSM
+*.pk[1-9]
+*.ek[1-9]
+*.pb7
+*.pb8
+*.pa8

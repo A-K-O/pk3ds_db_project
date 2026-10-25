@@ -67,5 +67,5 @@ Before changing code, answer four questions: Does this need investigation first?
 
 Create these as needed and keep long reference material there, not here:
 
-- `docs/formats.md`: save and record layouts per generation (to be created)
+- `docs/formats.md`: save and record layouts per generation 
 - `docs/references.md`: links to libctru, citro2d, PKSM, PKHeX, Project Pokémon, 3dbrew (to be created)
