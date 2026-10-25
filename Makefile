@@ -1,5 +1,5 @@
 #---------------------------------------------------------------------------------
-# Trimmed-down version of the devkitPro 3DS application template Makefile.
+# Based on the devkitPro 3DS application template Makefile.
 #---------------------------------------------------------------------------------
 .SUFFIXES:
 
@@ -12,30 +12,37 @@ include $(DEVKITARM)/3ds_rules
 
 #---------------------------------------------------------------------------------
 # TARGET is the name of the output
-# SOURCES is a list of directories containing source code
-# INCLUDES is a list of directories containing header files
+# SOURCES lists the directories compiled into the app. Subdirectories are not
+#   searched, so add new ones here. Object files are placed in one flat build
+#   folder, so source file names must be unique across all of these directories.
+# INCLUDES "." lets code include headers by path from the repo root,
+#   e.g. #include "core/checksum.hpp"
+# GRAPHICS holds .t3s lists; tex3ds builds them into GFXBUILD inside romfs
 #---------------------------------------------------------------------------------
-TARGET		:=	moving-square
+TARGET		:=	pk3ds-db
 BUILD		:=	build
-SOURCES		:=	source
-INCLUDES	:=	include
+SOURCES		:=	core platform/3ds ui
+INCLUDES	:=	.
+GRAPHICS	:=	gfx
+ROMFS		:=	romfs
+GFXBUILD	:=	$(ROMFS)/gfx
 
-APP_TITLE	:=	Moving Square
-APP_DESCRIPTION	:=	Move a square around the top screen
-APP_AUTHOR	:=	pk3ds_db_project
+APP_TITLE	:=	3DS Pokemon Database
+APP_DESCRIPTION	:=	View, store and move Pokemon between saves and banks
+APP_AUTHOR	:=	A-K-O
 
 #---------------------------------------------------------------------------------
 # options for code generation
 #---------------------------------------------------------------------------------
 ARCH	:=	-march=armv6k -mtune=mpcore -mfloat-abi=hard -mtp=soft
 
-CFLAGS	:=	-g -Wall -O2 -mword-relocations \
+CFLAGS	:=	-g -Wall -Wextra -O2 -mword-relocations \
 			-ffunction-sections \
 			$(ARCH)
 
 CFLAGS	+=	$(INCLUDE) -D__3DS__
 
-CXXFLAGS	:= $(CFLAGS) -fno-rtti -fno-exceptions -std=gnu++11
+CXXFLAGS	:= $(CFLAGS) -fno-rtti -fno-exceptions -std=gnu++20
 
 ASFLAGS	:=	-g $(ARCH)
 LDFLAGS	=	-specs=3dsx.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map)
@@ -58,19 +65,24 @@ ifneq ($(BUILD),$(notdir $(CURDIR)))
 export OUTPUT	:=	$(CURDIR)/$(TARGET)
 export TOPDIR	:=	$(CURDIR)
 
-export VPATH	:=	$(foreach dir,$(SOURCES),$(CURDIR)/$(dir))
+export VPATH	:=	$(foreach dir,$(SOURCES),$(CURDIR)/$(dir)) \
+			$(foreach dir,$(GRAPHICS),$(CURDIR)/$(dir))
 
 export DEPSDIR	:=	$(CURDIR)/$(BUILD)
 
 CFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.c)))
 CPPFILES	:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.cpp)))
 SFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.s)))
+GFXFILES	:=	$(foreach dir,$(GRAPHICS),$(notdir $(wildcard $(dir)/*.t3s)))
 
 ifeq ($(strip $(CPPFILES)),)
 	export LD	:=	$(CC)
 else
 	export LD	:=	$(CXX)
 endif
+
+export ROMFS_T3XFILES	:=	$(patsubst %.t3s, $(GFXBUILD)/%.t3x, $(GFXFILES))
+export T3XHFILES	:=	$(patsubst %.t3s, $(BUILD)/%.h, $(GFXFILES))
 
 export OFILES	:=	$(CPPFILES:.cpp=.o) $(CFILES:.c=.o) $(SFILES:.s=.o)
 
@@ -80,7 +92,7 @@ export INCLUDE	:=	$(foreach dir,$(INCLUDES),-I$(CURDIR)/$(dir)) \
 
 export LIBPATHS	:=	$(foreach dir,$(LIBDIRS),-L$(dir)/lib)
 
-# Use icon.png from this folder if present, otherwise libctru's default icon.
+# Use icon.png from the repo root if present, otherwise libctru's default icon.
 ifneq (,$(wildcard $(TOPDIR)/icon.png))
 	export APP_ICON := $(TOPDIR)/icon.png
 else
@@ -88,21 +100,26 @@ else
 endif
 
 export _3DSXDEPS	:=	$(OUTPUT).smdh
-export _3DSXFLAGS	+=	--smdh=$(OUTPUT).smdh
+export _3DSXFLAGS	+=	--smdh=$(OUTPUT).smdh --romfs=$(CURDIR)/$(ROMFS)
 
 .PHONY: all clean
 
 #---------------------------------------------------------------------------------
-all: $(BUILD)
+all: $(BUILD) $(GFXBUILD) $(ROMFS_T3XFILES) $(T3XHFILES)
 	@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
 
-$(BUILD):
+$(BUILD) $(GFXBUILD):
 	@mkdir -p $@
 
 #---------------------------------------------------------------------------------
 clean:
 	@echo clean ...
-	@rm -fr $(BUILD) $(TARGET).3dsx $(OUTPUT).smdh $(TARGET).elf
+	@rm -fr $(BUILD) $(TARGET).3dsx $(OUTPUT).smdh $(TARGET).elf $(GFXBUILD)
+
+#---------------------------------------------------------------------------------
+$(GFXBUILD)/%.t3x	$(BUILD)/%.h	:	%.t3s
+	@echo $(notdir $<)
+	@tex3ds -i $< -H $(BUILD)/$*.h -d $(DEPSDIR)/$*.d -o $(GFXBUILD)/$*.t3x
 
 #---------------------------------------------------------------------------------
 else
